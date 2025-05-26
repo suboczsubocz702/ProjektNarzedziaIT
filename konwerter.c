@@ -13,17 +13,17 @@ typedef struct {
     char *city;
 } Person;
 
-// Function to initialize a Person
+// Initialize Person
 Person *create_person(const char *name, int age, const char *city) {
     Person *p = malloc(sizeof(Person));
     if (!p) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
-    p->name = strdup(name);
+    p->name = name ? strdup(name) : NULL;
     p->age = age;
-    p->city = strdup(city);
-    if (!p->name || !p->city) {
+    p->city = city ? strdup(city) : NULL;
+    if ((name && !p->name) || (city && !p->city)) {
         fprintf(stderr, "Memory allocation for strings failed\n");
         free(p->name);
         free(p->city);
@@ -42,7 +42,22 @@ void free_person(Person *p) {
     }
 }
 
-// Task 2: Read and validate JSON
+// Get file extension
+const char *get_extension(const char *filename) {
+    const char *dot = strrchr(filename, '.');
+    if (!dot || dot == filename) return "";
+    return dot;
+}
+
+// Validate file extension
+int is_valid_extension(const char *ext) {
+    return strcmp(ext, ".json") == 0 ||
+           strcmp(ext, ".yml") == 0 ||
+           strcmp(ext, ".yaml") == 0 ||
+           strcmp(ext, ".xml") == 0;
+}
+
+// Task 2: Read JSON
 Person *read_json(const char *filename) {
     json_error_t error;
     json_t *root = json_load_file(filename, 0, &error);
@@ -97,7 +112,7 @@ int write_json(const Person *p, const char *filename) {
     return 0;
 }
 
-// Task 4: Read and validate YAML
+// Task 4: Read YAML
 Person *read_yaml(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
@@ -186,7 +201,6 @@ int write_yaml(const Person *p, const char *filename) {
     yaml_document_initialize(&doc, NULL, NULL, NULL, 1, 1);
 
     yaml_node_t *root = yaml_document_add_mapping(&doc, NULL, YAML_BLOCK_MAPPING_STYLE);
-    yaml_document_add_scalar(&doc, NULL, (yaml_char_t *)"name", -1, YAML_PLAIN_SCALAR_STYLE);
     yaml_document_append_mapping_pair(&doc, root->id,
         yaml_document_add_scalar(&doc, NULL, (yaml_char_t *)"name", -1, YAML_PLAIN_SCALAR_STYLE),
         yaml_document_add_scalar(&doc, NULL, (yaml_char_t *)p->name, -1, YAML_PLAIN_SCALAR_STYLE));
@@ -213,7 +227,7 @@ int write_yaml(const Person *p, const char *filename) {
     return 0;
 }
 
-// Task 6: Read and validate XML
+// Task 6: Read XML
 Person *read_xml(const char *filename) {
     xmlDoc *doc = xmlReadFile(filename, NULL, 0);
     if (!doc) {
@@ -280,77 +294,56 @@ int write_xml(const Person *p, const char *filename) {
     return 0;
 }
 
-// Task 1: Parse command-line arguments
-void print_usage(const char *prog) {
-    fprintf(stderr, "Usage: %s <operation> <format> <input_file> [<output_file>]\n", prog);
-    fprintf(stderr, "Operations: read, write\n");
-    fprintf(stderr, "Formats: json, yaml, xml\n");
-    fprintf(stderr, "Example: %s read json input.json\n", prog);
-    fprintf(stderr, "Example: %s write yaml input.json output.yaml\n", prog);
-    exit(1);
-}
-
+// Task 1: Parse arguments and dispatch
 int main(int argc, char *argv[]) {
-    if (argc < 4 || (strcmp(argv[1], "write") == 0 && argc != 5)) {
-        print_usage(argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s pathFile1.x pathFile2.y\n", argv[0]);
+        fprintf(stderr, "Extensions: .json, .yml, .yaml, .xml\n");
+        fprintf(stderr, "Example: %s input.json output.yaml\n", argv[0]);
+        return 1;
     }
 
-    const char *operation = argv[1];
-    const char *format = argv[2];
-    const char *input_file = argv[3];
-    const char *output_file = (argc == 5) ? argv[4] : NULL;
+    const char *input_file = argv[1];
+    const char *output_file = argv[2];
+    const char *input_ext = get_extension(input_file);
+    const char *output_ext = get_extension(output_file);
 
-    if (strcmp(operation, "read") != 0 && strcmp(operation, "write") != 0) {
-        fprintf(stderr, "Invalid operation: %s\n", operation);
-        print_usage(argv[0]);
-    }
-    if (strcmp(format, "json") != 0 && strcmp(format, "yaml") != 0 && strcmp(format, "xml") != 0) {
-        fprintf(stderr, "Invalid format: %s\n", format);
-        print_usage(argv[0]);
-    }
-    if (strcmp(operation, "write") == 0 && !output_file) {
-        fprintf(stderr, "Output file required for write operation\n");
-        print_usage(argv[0]);
+    if (!is_valid_extension(input_ext) || !is_valid_extension(output_ext)) {
+        fprintf(stderr, "Invalid file extension. Use .json, .yml, .yaml, or .xml\n");
+        return 1;
     }
 
+    // Read input file
     Person *p = NULL;
-    if (strcmp(operation, "read") == 0) {
-        if (strcmp(format, "json") == 0) {
-            p = read_json(input_file);
-        } else if (strcmp(format, "yaml") == 0) {
-            p = read_yaml(input_file);
-        } else if (strcmp(format, "xml") == 0) {
-            p = read_xml(input_file);
-        }
-        if (p) {
-            printf("Read data: name=%s, age=%d, city=%s\n", p->name, p->age, p->city);
-            free_person(p);
-        } else {
-            fprintf(stderr, "Failed to read %s file %s\n", format, input_file);
-            return 1;
-        }
-    } else if (strcmp(operation, "write") == 0) {
-        // For write, assume input is a JSON file to populate Person
+    if (strcmp(input_ext, ".json") == 0) {
         p = read_json(input_file);
-        if (!p) {
-            fprintf(stderr, "Failed to read input JSON file %s\n", input_file);
-            return 1;
-        }
-        int result = 1;
-        if (strcmp(format, "json") == 0) {
-            result = write_json(p, output_file);
-        } else if (strcmp(format, "yaml") == 0) {
-            result = write_yaml(p, output_file);
-        } else if (strcmp(format, "xml") == 0) {
-            result = write_xml(p, output_file);
-        }
-        free_person(p);
-        if (result) {
-            fprintf(stderr, "Failed to write %s file %s\n", format, output_file);
-            return 1;
-        }
-        printf("Successfully wrote to %s\n", output_file);
+    } else if (strcmp(input_ext, ".yml") == 0 || strcmp(input_ext, ".yaml") == 0) {
+        p = read_yaml(input_file);
+    } else if (strcmp(input_ext, ".xml") == 0) {
+        p = read_xml(input_file);
     }
 
+    if (!p) {
+        fprintf(stderr, "Failed to read input file %s\n", input_file);
+        return 1;
+    }
+
+    // Write output file
+    int result = 1;
+    if (strcmp(output_ext, ".json") == 0) {
+        result = write_json(p, output_file);
+    } else if (strcmp(output_ext, ".yml") == 0 || strcmp(output_ext, ".yaml") == 0) {
+        result = write_yaml(p, output_file);
+    } else if (strcmp(output_ext, ".xml") == 0) {
+        result = write_xml(p, output_file);
+    }
+
+    free_person(p);
+    if (result) {
+        fprintf(stderr, "Failed to write output file %s\n", output_file);
+        return 1;
+    }
+
+    printf("Successfully converted %s to %s\n", input_file, output_file);
     return 0;
 }
