@@ -1,8 +1,17 @@
-
 import argparse
 import os
 import json
 import yaml
+from lxml import etree
+
+def read_xml(file_path):
+    try:
+        tree = etree.parse(file_path)
+        return tree.getroot()  # Zwraca korzeń drzewa XML
+    except etree.XMLSyntaxError as e:
+        raise ValueError(f"Nieprawidłowa składnia XML w {file_path}: {e}")
+    except Exception as e:
+        raise IOError(f"Błąd podczas wczytywania {file_path}: {e}")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Konwersja danych między formatami JSON, YAML i XML.")
@@ -75,6 +84,11 @@ def write_yaml(data, file_path):
 # Aktualizacja main
 if __name__ == "__main__":
     input_file, output_file = parse_arguments()
+
+    if input_file.endswith('.xml'):
+        data = read_xml(input_file)
+        print("Dane XML wczytane:", etree.tostring(data, pretty_print=True).decode())
+
     if input_file.endswith(('.yaml', '.yml')):
         data = read_yaml(input_file)
         
@@ -83,4 +97,3 @@ if __name__ == "__main__":
             print(f"Przekonwertowano do {output_file}")
 
         print("Dane YAML wczytane:", data)
-
