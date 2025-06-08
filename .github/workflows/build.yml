@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: data-converter-cli
-          path: dist/projkt.exe
+          path: dist/projekt.exe
 
       - name: Przesłanie EXE GUI
         uses: actions/upload-artifact@v4
