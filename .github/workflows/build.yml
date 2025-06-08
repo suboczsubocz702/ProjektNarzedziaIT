@@ -43,8 +43,8 @@ jobs:
 
       - name: Budowanie EXE
         run: |
-          pyinstaller --onefile project.py
-          pyinstaller --onefile --noconsole project_gui.py
+          pyinstaller --onefile projekt.py
+          pyinstaller --onefile --noconsole projekt_gui.py
         shell: powershell
 
       - name: Przesłanie EXE CLI
