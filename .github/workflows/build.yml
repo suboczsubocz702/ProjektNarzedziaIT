@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Pobieranie kodu
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Zaktualizowano do v4 dla spójności
 
       - name: Konfiguracja Pythona
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # Zaktualizowano do v5 dla spójności
         with:
           python-version: '3.x'
 
@@ -32,13 +32,13 @@ jobs:
           pyinstaller --onefile --noconsole project_gui.py
 
       - name: Przesłanie EXE CLI
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Zaktualizowano z v3 na v4
         with:
           name: data-converter-cli
           path: dist/project.exe
 
       - name: Przesłanie EXE GUI
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Zaktualizowano z v3 na v4
         with:
           name: data-converter-gui
           path: dist/project_gui.exe
