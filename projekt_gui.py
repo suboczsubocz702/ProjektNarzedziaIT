@@ -1,9 +1,10 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel
-from project import read_json, write_json, read_yaml, write_yaml, read_xml, write_xml
 from PyQt5.QtCore import QThread, pyqtSignal
+from project import read_json, write_json, read_yaml, write_yaml, read_xml, write_xml, xml_to_dict, dict_to_xml
 
 class ConverterThread(QThread):
+    """Wątek do asynchronicznego wczytywania i zapisywania plików."""
     result = pyqtSignal(str)
     error = pyqtSignal(str)
 
@@ -13,7 +14,37 @@ class ConverterThread(QThread):
         self.output_file = output_file
 
     def run(self):
+        try:
+            # Wczytywanie danych
+            input_ext = self.input_file.lower().rsplit('.', 1)[1]
+            if input_ext == 'json':
+                data = read_json(self.input_file)
+            elif input_ext in ('yaml', 'yml'):
+                data = read_yaml(self.input_file)
+            elif input_ext == 'xml':
+                xml_data = read_xml(self.input_file)
+                data = xml_to_dict(xml_data)
+            else:
+                raise ValueError(f"Nieobsługiwany format pliku wejściowego: {input_ext}")
+
+            # Zapis danych
+            output_ext = self.output_file.lower().rsplit('.', 1)[1]
+            if output_ext == 'json':
+                write_json(data, self.output_file)
+            elif output_ext in ('yaml', 'yml'):
+                write_yaml(data, self.output_file)
+            elif output_ext == 'xml':
+                xml_data = dict_to_xml(data)
+                write_xml(xml_data, self.output_file)
+            else:
+                raise ValueError(f"Nieobsługiwany format pliku wyjściowego: {output_ext}")
+
+            self.result.emit(f"Konwersja zakończona pomyślnie: {self.output_file}")
+        except Exception as e:
+            self.error.emit(f"Błąd: {str(e)}")
+
 class ConverterWindow(QMainWindow):
+    """Główne okno aplikacji GUI do konwersji danych."""
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Konwerter Danych")
@@ -45,47 +76,21 @@ class ConverterWindow(QMainWindow):
         self.output_file = None
 
     def select_input(self):
+        """Otwiera okno dialogowe do wyboru pliku wejściowego."""
         file, _ = QFileDialog.getOpenFileName(self, "Wybierz plik wejściowy", "", "Pliki danych (*.json *.yaml *.yml *.xml)")
         if file:
             self.input_file = file
             self.status_label.setText(f"Wejście: {file}")
 
     def select_output(self):
+        """Otwiera okno dialogowe do wyboru pliku wyjściowego."""
         file, _ = QFileDialog.getSaveFileName(self, "Wybierz plik wyjściowy", "", "Pliki danych (*.json *.yaml *.yml *.xml)")
         if file:
             self.output_file = file
             self.status_label.setText(f"Wyjście: {file}")
 
     def convert_files(self):
-        if not self.input_file or not self.output_file:
-            self.status_label.setText("Wybierz oba pliki: wejściowy i wyjściowy.")
-            return
-          
-        try:
-            # Wczytanie danych
-            if self.input_file.endswith('.json'):
-                data = read_json(self.input_file)
-            elif self.input_file.endswith(('.yaml', '.yml')):
-                data = read_yaml(self.input_file)
-            elif self.input_file.endswith('.xml'):
-                data = read_xml(self.input_file)
-
-            # Zapis danych
-            if self.output_file.endswith('.json'):
-                write_json(data, self.output_file)
-            elif self.output_file.endswith(('.yaml', '.yml')):
-                write_yaml(data, self.output_file)
-            elif self.output_file.endswith('.xml'):
-                write_xml(data, self.output_file)
-
-            self.result.emit(f"Konwersja zakończona: {self.output_file}")
-        except Exception as e:
-            self.error.emit(f"Błąd: {e}")
-
-# Aktualizacja ConverterWindow
-class ConverterWindow(QMainWindow):
-    # ... (poprzedni kod aż do convert_files)
-    def convert_files(self):
+        """Uruchamia asynchroniczną konwersję plików."""
         if not self.input_file or not self.output_file:
             self.status_label.setText("Wybierz oba pliki: wejściowy i wyjściowy.")
             return
@@ -99,17 +104,16 @@ class ConverterWindow(QMainWindow):
         self.thread.start()
 
     def on_conversion_success(self, message):
+        """Obsługuje sukces konwersji."""
         self.status_label.setText(message)
 
     def on_conversion_error(self, message):
+        """Obsługuje błędy konwersji."""
         self.status_label.setText(message)
 
     def on_conversion_finished(self):
+        """Przywraca aktywność przycisku po zakończeniu konwersji."""
         self.convert_button.setEnabled(True)
-
-            self.status_label.setText(f"Konwersja zakończona: {self.output_file}")
-        except Exception as e:
-            self.status_label.setText(f"Błąd: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
