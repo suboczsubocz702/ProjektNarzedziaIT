@@ -133,11 +133,11 @@ Automatyczne budowanie:
 7. GitHub Actions
 Workflow (build.yml) wykonuje następujące kroki:
 
-1. Pobiera kod z repozytorium.
-2. Konfiguruje Pythona (3.x).
-3. Instaluje zależności za pomocą installResources.ps1.
-4. Buduje pliki .exe dla project.py i project_gui.py.
-5. Przesyła artefakty (data-converter-cli, data-converter-gui) za pomocą actions/upload-artifact@v4.
+- Pobiera kod z repozytorium.
+- Konfiguruje Pythona (3.x).
+- Instaluje zależności za pomocą installResources.ps1.
+- Buduje pliki .exe dla project.py i project_gui.py.
+- Przesyła artefakty (data-converter-cli, data-converter-gui) za pomocą actions/upload-artifact@v4.
 
 Uruchomienie ręczne:
 
