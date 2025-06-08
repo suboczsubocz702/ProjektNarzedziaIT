@@ -1,9 +1,17 @@
+
 import argparse
 import os
 import json
 import yaml
 from lxml import etree
 
+def write_xml(data, file_path):
+    try:
+        tree = etree.ElementTree(data)
+        tree.write(file_path, pretty_print=True, xml_declaration=True, encoding='UTF-8')
+    except Exception as e:
+        raise IOError(f"Błąd podczas zapisu do {file_path}: {e}")
+        
 def read_xml(file_path):
     try:
         tree = etree.parse(file_path)
@@ -53,7 +61,7 @@ if __name__ == "__main__":
     input_file, output_file = parse_arguments()
     if input_file.endswith('.json'):
         data = read_json(input_file)
-=======
+
         print("Dane JSON wczytane:", data)
     else:
         print(f"Wejście: {input_file}, Wyjście: {output_file}")
@@ -84,6 +92,12 @@ def write_yaml(data, file_path):
 # Aktualizacja main
 if __name__ == "__main__":
     input_file, output_file = parse_arguments()
+
+    if input_file.endswith('.xml'):
+        data = read_xml(input_file)
+        if output_file.endswith('.xml'):
+            write_xml(data, output_file)
+            print(f"Przekonwertowano do {output_file}")pr
 
     if input_file.endswith('.xml'):
         data = read_xml(input_file)
